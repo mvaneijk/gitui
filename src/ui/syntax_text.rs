@@ -16,15 +16,19 @@ use syntect::{
 };
 use tui::text::{Span, Spans};
 
+#[derive(Hash)]
 struct SyntaxLine {
 	items: Vec<(Style, usize, Range<usize>)>,
 }
 
+#[derive(Hash)]
 pub struct SyntaxText {
 	text: String,
 	lines: Vec<SyntaxLine>,
 	path: PathBuf,
 }
+
+use crate::hash;
 
 lazy_static! {
 	static ref SYNTAX_SET: SyntaxSet =
@@ -185,6 +189,17 @@ impl AsyncJob for AsyncSyntaxJob {
 				}
 				JobState::Response(res) => JobState::Response(res),
 			});
+		}
+	}
+
+	fn get_hash(&mut self) -> u64 {
+		if let Ok(mut state) = self.state.lock() {
+			state.take().map_or(0, |state| match state {
+				JobState::Request(_) => 0,
+				JobState::Response(result) => hash(&result),
+			})
+		} else {
+			0
 		}
 	}
 }

@@ -11,14 +11,15 @@ use crate::{
 };
 use anyhow::Result;
 use asyncgit::{
+	asyncjob::AsyncSingleJob,
 	cached,
 	sync::{self, CommitId},
-	AsyncGitNotification, AsyncLog, AsyncTags, CommitFilesParams,
-	FetchStatus, CWD,
+	tags::AsyncTagsJob,
+	AsyncGitNotification, AsyncLog, CommitFilesParams, FetchStatus,
+	CWD,
 };
 use crossbeam_channel::Sender;
 use crossterm::event::Event;
-use std::time::Duration;
 use sync::CommitTags;
 use tui::{
 	backend::Backend,
@@ -33,7 +34,7 @@ pub struct Revlog {
 	commit_details: CommitDetailsComponent,
 	list: CommitList,
 	git_log: AsyncLog,
-	git_tags: AsyncTags,
+	git_tags: AsyncSingleJob<AsyncTagsJob, AsyncGitNotification>,
 	queue: Queue,
 	visible: bool,
 	branch_name: cached::BranchName,
@@ -62,7 +63,11 @@ impl Revlog {
 				key_config.clone(),
 			),
 			git_log: AsyncLog::new(sender, None),
-			git_tags: AsyncTags::new(sender),
+			git_tags: AsyncSingleJob::new(
+				sender.clone(),
+				AsyncGitNotification::Tags,
+				Some(AsyncGitNotification::FinishUnchanged),
+			),
 			visible: false,
 			branch_name: cached::BranchName::new(CWD),
 			key_config,
@@ -92,7 +97,7 @@ impl Revlog {
 				self.fetch_commits()?;
 			}
 
-			self.git_tags.request(Duration::from_secs(3), false)?;
+			self.git_tags.spawn(AsyncTagsJob::new(), None, false);
 
 			self.list.set_branch(
 				self.branch_name.lookup().map(Some).unwrap_or(None),
@@ -122,9 +127,11 @@ impl Revlog {
 				AsyncGitNotification::CommitFiles
 				| AsyncGitNotification::Log => self.update()?,
 				AsyncGitNotification::Tags => {
-					if let Some(tags) = self.git_tags.last()? {
-						self.list.set_tags(tags);
-						self.update()?;
+					if let Some(job) = self.git_tags.take_last() {
+						if let Some(Ok(tags)) = job.0.result() {
+							self.list.set_tags(tags);
+							self.update()?;
+						}
 					}
 				}
 				_ => (),

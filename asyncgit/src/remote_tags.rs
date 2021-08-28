@@ -3,6 +3,7 @@
 use crate::{
 	asyncjob::AsyncJob,
 	error::Result,
+	hash,
 	sync::cred::BasicAuthCredential,
 	sync::remotes::{get_default_remote, tags_missing_remote},
 	CWD,
@@ -69,6 +70,23 @@ impl AsyncJob for AsyncRemoteTagsJob {
 					JobState::Response(result)
 				}
 			});
+		}
+	}
+
+	fn get_hash(&mut self) -> u64 {
+		if let Ok(mut state) = self.state.lock() {
+			state.take().map_or(0, |state| match state {
+				JobState::Request(_) => 0,
+				JobState::Response(result) => {
+					if let Ok(res) = result {
+						hash(&res)
+					} else {
+						0
+					}
+				}
+			})
+		} else {
+			0
 		}
 	}
 }

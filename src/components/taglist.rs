@@ -267,6 +267,7 @@ impl TagListComponent {
 			async_remote_tags: AsyncSingleJob::new(
 				sender.clone(),
 				AsyncAppNotification::RemoteTags,
+				None,
 			),
 			key_config,
 		}
@@ -304,7 +305,8 @@ impl TagListComponent {
 			AsyncNotification::App(AsyncAppNotification::RemoteTags)
 		) {
 			if let Some(job) = self.async_remote_tags.take_last() {
-				if let Some(Ok(missing_remote_tags)) = job.result() {
+				if let Some(Ok(missing_remote_tags)) = job.0.result()
+				{
 					self.missing_remote_tags =
 						Some(missing_remote_tags);
 				}
@@ -332,9 +334,11 @@ impl TagListComponent {
 	}
 
 	pub fn update_missing_remote_tags(&mut self) {
-		self.async_remote_tags.spawn(AsyncRemoteTagsJob::new(
-			self.basic_credential.clone(),
-		));
+		self.async_remote_tags.spawn(
+			AsyncRemoteTagsJob::new(self.basic_credential.clone()),
+			None,
+			false,
+		);
 	}
 
 	///

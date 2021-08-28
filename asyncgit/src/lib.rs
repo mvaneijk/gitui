@@ -37,7 +37,7 @@ pub mod remote_tags;
 mod revlog;
 mod status;
 pub mod sync;
-mod tags;
+pub mod tags;
 
 pub use crate::{
 	blame::{AsyncBlame, BlameParams},
@@ -53,7 +53,7 @@ pub use crate::{
 		diff::{DiffLine, DiffLineType, FileDiff},
 		status::{StatusItem, StatusItemType},
 	},
-	tags::AsyncTags,
+	tags::AsyncTagsJob,
 };
 use std::{
 	collections::hash_map::DefaultHasher,

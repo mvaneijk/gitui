@@ -37,7 +37,7 @@ mod version;
 
 use crate::{app::App, args::process_cmdline};
 use anyhow::{bail, Result};
-use asyncgit::AsyncGitNotification;
+use asyncgit::{hash, AsyncGitNotification};
 use backtrace::Backtrace;
 use crossbeam_channel::{tick, unbounded, Receiver, Select};
 use crossterm::{

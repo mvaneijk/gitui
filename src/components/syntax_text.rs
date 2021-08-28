@@ -51,6 +51,7 @@ impl SyntaxTextComponent {
 			async_highlighting: AsyncSingleJob::new(
 				sender.clone(),
 				AsyncAppNotification::SyntaxHighlighting,
+				None,
 			),
 			current_file: None,
 			paragraph_state: Cell::new(ParagraphState::default()),
@@ -72,7 +73,7 @@ impl SyntaxTextComponent {
 				if let Some((path, content)) =
 					self.current_file.as_mut()
 				{
-					if let Some(syntax) = job.result() {
+					if let Some(syntax) = job.0.result() {
 						if syntax.path() == Path::new(path) {
 							*content = Either::Left(syntax);
 						}
@@ -109,6 +110,8 @@ impl SyntaxTextComponent {
 							content.clone(),
 							path.clone(),
 						),
+						None,
+						false,
 					);
 
 					self.current_file =
